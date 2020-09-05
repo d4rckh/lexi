@@ -19,8 +19,12 @@ void enableRawMode() {
     atexit(disableRawMode);
     // create a copy of the attrs
     struct termios raw = orig_termios;
-    // disable echo, canocical mode, and ctrl+c,ctrl+z
-    raw.c_lflag &= ~(ECHO | ICANON | ISIG);    
+    // disable Ctrl-S and Ctrl-Q. Ctrl-M
+    raw.c_iflag &= ~(IXON | IXON);
+    // disable output processing
+    raw.c_oflag &= ~(OPOST);
+    // disable echo, canocical mode, and ctrl+c,ctrl+z, disable ctrl+o
+    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);    
     // save attrs
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
@@ -35,7 +39,7 @@ int main() {
         if (iscntrl(c)) {
             printf("%d\n", c);
         } else {
-            printf("%d ('%c')\n", c, c);
+            printf("%d ('%c')\r\n", c, c);
         }
     }
     return 0;
