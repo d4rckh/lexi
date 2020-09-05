@@ -1,6 +1,8 @@
 #include <unistd.h>
 #include <termios.h>
 #include <stdlib.h>
+#include <ctype.h>
+#include <stdio.h>
 
 // struct for original terminal attrs
 struct termios orig_termios;
@@ -28,7 +30,13 @@ int main() {
     enableRawMode();
     // store characters here
     char c;
-    // read stdin
-    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q');    // exit cleanly
+    // read stdin until "q"
+    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
+        if (iscntrl(c)) {
+            printf("%d\n", c);
+        } else {
+            printf("%d ('%c')\n", c, c);
+        }
+    }
     return 0;
 }
