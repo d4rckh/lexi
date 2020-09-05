@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <termios.h>
+#include <stdlib.h>
 
 // struct for original terminal attrs
 struct termios orig_termios;
@@ -16,8 +17,8 @@ void enableRawMode() {
     atexit(disableRawMode);
     // create a copy of the attrs
     struct termios raw = orig_termios;
-    // disable echo
-    raw.c_lflag &= ~(ECHO);
+    // disable echo and canocical mode
+    raw.c_lflag &= ~(ECHO | ICANON);    
     // save attrs
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
