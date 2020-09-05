@@ -3,44 +3,43 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
+#include <errno.h>
 
 // struct for original terminal attrs
 struct termios orig_termios;
 
+void die(const char *s) {
+    perror(s);
+    exit(1);
+}
 
 void disableRawMode() {
-    // set old attrs
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+    die("tcsetattr");
 }
 void enableRawMode() {
-    // get attrs
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    // set disableRawMode at exit
-    atexit(disableRawMode);
-    // create a copy of the attrs
-    struct termios raw = orig_termios;
-    // disable Ctrl-S and Ctrl-Q. Ctrl-M
-    raw.c_iflag &= ~(IXON | IXON);
-    // disable output processing
-    raw.c_oflag &= ~(OPOST);
-    // disable echo, canocical mode, and ctrl+c,ctrl+z, disable ctrl+o
-    raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);    
-    // save attrs
-    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1) die("tcgetattr");
+  atexit(disableRawMode);
+  struct termios raw = orig_termios;
+  raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+  raw.c_oflag &= ~(OPOST);
+  raw.c_cflag |= (CS8);
+  raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
+  raw.c_cc[VMIN] = 0;
+  raw.c_cc[VTIME] = 1;
+  if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) die("tcsetattr");
 }
-
 int main() {
-    // enable raw mode
-    enableRawMode();
-    // store characters here
-    char c;
-    // read stdin until "q"
-    while (read(STDIN_FILENO, &c, 1) == 1 && c != 'q') {
-        if (iscntrl(c)) {
-            printf("%d\n", c);
-        } else {
-            printf("%d ('%c')\r\n", c, c);
-        }
+  enableRawMode();
+  while (1) {
+    char c = '\0';
+    if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) die("read");
+    if (iscntrl(c)) {
+      printf("%d\r\n", c);
+    } else {
+      printf("%d ('%c')\r\n", c, c);
     }
-    return 0;
+    if (c == 'q') break;
+  }
+  return 0;
 }
