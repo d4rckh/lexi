@@ -19,8 +19,8 @@ void enableRawMode() {
     atexit(disableRawMode);
     // create a copy of the attrs
     struct termios raw = orig_termios;
-    // disable echo and canocical mode
-    raw.c_lflag &= ~(ECHO | ICANON);    
+    // disable echo, canocical mode, and ctrl+c,ctrl+z
+    raw.c_lflag &= ~(ECHO | ICANON | ISIG);    
     // save attrs
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
